@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AlpineTracker">
+<meta name="description" content="16-Wochen Rad-Vorsaison für alpine Rennläufer · Slalom & Riesenslalom">
+<title>Alpine Power Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ───────────────────────────────────────────────── */
+:root {
+  /* Core palette — clean light alpine */
+  --white:    #ffffff;
+  --snow:     #f7f9fc;
+  --ice:      #edf2f7;
+  --slate50:  #f8fafc;
+  --slate100: #f1f5f9;
+  --slate200: #e2e8f0;
+  --slate300: #cbd5e1;
+  --slate400: #94a3b8;
+  --slate500: #64748b;
+  --slate600: #475569;
+  --slate700: #334155;
+  --slate800: #1e293b;
+  --navy:     #1e3a5f;
+  --navyL:    #2d5282;
+
+  /* Accents */
+  --blue:     #2563eb;
+  --blueL:    #3b82f6;
+  --blueXL:   #dbeafe;
+  --teal:     #0891b2;
+  --tealL:    #06b6d4;
+  --tealXL:   #cffafe;
+  --green:    #16a34a;
+  --greenL:   #22c55e;
+  --greenXL:  #dcfce7;
+  --orange:   #ea580c;
+  --orangeL:  #f97316;
+  --orangeXL: #ffedd5;
+  --red:      #dc2626;
+  --redL:     #ef4444;
+  --redXL:    #fee2e2;
+  --purple:   #7c3aed;
+  --purpleXL: #ede9fe;
+
+  /* Zone colours */
+  --z1:  #0891b2; --z1bg: #e0f7fa;
+  --z2:  #16a34a; --z2bg: #dcfce7;
+  --z3:  #ca8a04; --z3bg: #fef9c3;
+  --z4:  #ea580c; --z4bg: #ffedd5;
+  --z5:  #dc2626; --z5bg: #fee2e2;
+  --z6:  #7c3aed; --z6bg: #ede9fe;
+
+  /* Phase colours */
+  --p1: #2563eb; --p1bg: #dbeafe;
+  --p2: #ca8a04; --p2bg: #fef9c3;
+  --p3: #dc2626; --p3bg: #fee2e2;
+  --p4: #16a34a; --p4bg: #dcfce7;
+
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadowM: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── RESET ────────────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size:15px; scroll-behavior:smooth; }
+body {
+  font-family:'Inter', system-ui, sans-serif;
+  background: var(--snow);
+  color: var(--slate800);
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: calc(var(--safe-bot) + 32px);
+  line-height: 1.5;
+}
+
+/* ── OFFLINE BANNER ──────────────────────────────────────── */
+#offline-bar {
+  display: none;
+  background: var(--orangeXL);
+  border-bottom: 2px solid var(--orangeL);
+  padding: 8px 16px;
+  font-size: 12px; font-weight: 600;
+  color: var(--orange);
+  text-align: center;
+}
+#offline-bar.show { display: block; }
+
+/* ── SETUP SCREEN ────────────────────────────────────────── */
+#setup {
+  position: fixed; inset: 0; z-index: 200;
+  background: linear-gradient(160deg, #1e3a5f 0%, #2d5282 40%, #1e4976 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bot) + 20px);
+  overflow-y: auto;
+}
+#setup.gone { display: none; }
+
+.setup-icon {
+  width: 80px; height: 80px; margin-bottom: 16px;
+}
+
+.setup-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(32px, 8vw, 52px);
+  font-weight: 800; text-transform: uppercase;
+  color: white; text-align: center; line-height: 1;
+  letter-spacing: -0.5px;
+}
+.setup-title em { color: #60a5fa; font-style: normal; }
+.setup-sub {
+  font-size: 12px; color: rgba(255,255,255,0.55);
+  letter-spacing: 2px; text-transform: uppercase;
+  margin: 8px 0 28px; text-align: center;
+}
+
+.setup-box {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  width: 100%; max-width: 400px;
+  box-shadow: var(--shadowM);
+}
+
+.setup-box h2 {
+  font-size: 14px; font-weight: 700;
+  color: var(--navy); margin-bottom: 20px;
+  text-transform: uppercase; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Input fields */
+.field { margin-bottom: 18px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--slate500); text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 8px;
+}
+.field-row { display: flex; align-items: center; gap: 10px; }
+.field input {
+  flex: 1; border: 2px solid var(--slate200);
+  border-radius: 8px; padding: 12px 14px;
+  font-size: 28px; font-weight: 700;
+  font-family: 'Barlow Condensed', sans-serif;
+  color: var(--navy); outline: none;
+  transition: border-color .2s;
+  -webkit-appearance: none;
+}
+.field input:focus { border-color: var(--blue); }
+.field .unit {
+  font-size: 16px; font-weight: 600;
+  color: var(--slate400);
+}
+.field .hint {
+  font-size: 11px; color: var(--slate400);
+  margin-top: 5px; line-height: 1.5;
+}
+
+/* W/kg badge */
+.wkg-card {
+  background: var(--blueXL);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px 16px; margin: 16px 0;
+  display: flex; align-items: center; gap: 14px;
+}
+.wkg-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 34px; font-weight: 800; color: var(--blue);
+  line-height: 1; flex-shrink: 0;
+}
+.wkg-right {}
+.wkg-label { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; }
+.wkg-rating { font-size: 12px; color: var(--slate600); margin-top: 2px; }
+
+/* Zone mini preview */
+.zone-list { display: flex; flex-direction: column; gap: 4px; margin: 14px 0; }
+.zone-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 6px;
+  background: var(--slate50); border: 1px solid var(--slate100);
+}
+.zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
+.zone-name { font-size: 11px; font-weight: 700; width: 22px; }
+.zone-desc { font-size: 11px; color: var(--slate500); flex: 1; }
+.zone-watts { font-size: 11px; font-weight: 700; text-align: right; }
+
+/* Start button */
+.start-btn {
+  width: 100%; padding: 15px;
+  background: var(--navy); color: white; border: none;
+  border-radius: 8px; font-size: 16px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; transition: background .15s;
+  margin-top: 8px;
+}
+.start-btn:hover { background: var(--navyL); }
+.start-btn:active { background: var(--navy); opacity: .9; }
+
+/* ── APP SHELL ───────────────────────────────────────────── */
+#app { display: none; }
+
+/* ── HEADER ──────────────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navyL) 100%);
+  padding: calc(var(--safe-top) + 20px) 16px 20px;
+  color: white;
+}
+.header-inner { max-width: 680px; margin: 0 auto; }
+.header-top { display: flex; align-items: flex-start; gap: 12px; }
+.header-icon { width: 44px; height: 44px; flex-shrink:0; }
+.header-text { flex: 1; }
+.header-eyebrow {
+  font-size: 10px; font-weight: 600; letter-spacing: 3px;
+  text-transform: uppercase; color: rgba(255,255,255,0.55);
+  margin-bottom: 3px;
+}
+.header-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(24px, 5vw, 36px); font-weight: 800;
+  text-transform: uppercase; line-height: 1;
+  letter-spacing: -0.5px;
+}
+.header-title em { color: #60a5fa; font-style: normal; }
+.edit-btn {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.85); padding: 6px 12px;
+  border-radius: 6px; font-size: 11px; font-weight: 600;
+  cursor: pointer; flex-shrink: 0; transition: background .15s;
+}
+.edit-btn:hover { background: rgba(255,255,255,0.2); }
+
+/* Stats row */
+.stats-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+.stat-chip {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px; padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.stat-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px; font-weight: 700; color: #60a5fa; line-height: 1;
+}
+.stat-label { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+
+/* Global progress */
+.prog-wrap { margin-top: 16px; }
+.prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.prog-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 1.5px; }
+.prog-pct { font-size: 13px; font-weight: 700; color: #60a5fa; }
+.prog-bar { height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width .5s ease; background: linear-gradient(90deg, #60a5fa, #34d399); }
+
+/* Phase mini bars */
+.phase-bars { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-top: 12px; }
+.pb-item {}
+.pb-label { font-size: 9px; color: rgba(255,255,255,0.5); margin-bottom: 3px; font-weight: 600; }
+.pb-track { height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; overflow:hidden; }
+.pb-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+
+/* ── ZONES STRIP ─────────────────────────────────────────── */
+.zones-strip {
+  background: white;
+  border-bottom: 1px solid var(--slate200);
+  padding: 10px 16px;
+  display: flex; gap: 6px; align-items: center;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.zones-strip::-webkit-scrollbar { display:none; }
+.zs-label { font-size: 10px; font-weight: 700; color: var(--slate400); text-transform: uppercase; letter-spacing: 1px; flex-shrink:0; margin-right: 4px; }
+.z-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 600;
+  flex-shrink: 0; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.z-chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink:0; }
+
+/* ── PHASE TABS ──────────────────────────────────────────── */
+.phase-nav {
+  background: white;
+  border-bottom: 2px solid var(--slate200);
+  display: flex; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.phase-nav::-webkit-scrollbar { display:none; }
+.pn-tab {
+  flex: 1; min-width: 80px;
+  padding: 12px 10px;
+  cursor: pointer; text-align: center;
+  border-bottom: 3px solid transparent;
+  transition: all .2s; user-select: none;
+  position: relative; bottom: -2px;
+}
+.pn-tab:active { background: var(--slate50); }
+.pn-num { font-size: 9px; font-weight: 700; color: var(--slate400); letter-spacing: 1px; text-transform: uppercase; }
+.pn-name { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; text-transform: uppercase; margin-top: 1px; color: var(--slate600); }
+.pn-prog { height: 2px; border-radius: 1px; overflow:hidden; background: var(--slate100); margin-top: 6px; }
+.pn-fill { height: 100%; border-radius: 1px; transition: width .4s; }
+.pn-tab.on .pn-name { color: var(--navy); }
+
+/* ── CONTENT ─────────────────────────────────────────────── */
+.content { max-width: 680px; margin: 0 auto; padding: 16px; }
+.phase-panel { display: none; }
+.phase-panel.on { display: block; }
+
+/* Phase intro card */
+.phase-intro {
+  background: white;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--blue);
+  padding: 14px 16px; margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.pi-icon { font-size: 22px; flex-shrink: 0; }
+.pi-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.pi-text { font-size: 12px; color: var(--slate600); margin-top: 4px; line-height: 1.6; }
+
+/* ── WEEK CARDS ──────────────────────────────────────────── */
+.week-list { display: flex; flex-direction: column; gap: 10px; }
+
+.week-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--slate200);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.week-card.done { border-color: #86efac; background: #f0fdf4; }
+
+.wk-head {
+  display: flex; align-items: center;
+  padding: 13px 14px; cursor: pointer;
+  gap: 10px; user-select: none; -webkit-user-select: none;
+}
+.wk-head:active { background: var(--slate50); }
+
+.wk-badge {
+  font-size: 9px; font-weight: 800;
+  color: var(--blue); letter-spacing: 1.5px;
+  text-transform: uppercase; flex-shrink: 0;
+  width: 38px;
+}
+.wk-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px; font-weight: 700;
+  text-transform: uppercase; flex: 1;
+  color: var(--slate800); line-height: 1.2;
+}
+.wk-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.wk-vol { font-size: 10px; color: var(--slate400); display:none; font-weight:500; }
+@media(min-width:420px){ .wk-vol { display:block; } }
+.wk-dots { display: flex; gap: 3px; }
+.wk-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--slate200); }
+.wk-dot.done { background: var(--green); }
+.wk-dot.rest { background: var(--slate100); }
+.wk-count { font-size: 10px; color: var(--slate400); font-weight: 600; }
+.wk-arrow { color: var(--slate400); font-size: 12px; transition: transform .2s; }
+.week-card.open .wk-arrow { transform: rotate(180deg); }
+
+.wk-body { display: none; padding: 0 12px 12px; }
+.week-card.open .wk-body { display: block; }
+
+/* Recovery week styling */
+.week-card.reco { border-color: #a7f3d0; }
+.week-card.reco .wk-badge { color: var(--green); }
+
+/* ── SESSION ROWS ────────────────────────────────────────── */
+.session-list { display: flex; flex-direction: column; gap: 4px; }
+
+.sess {
+  display: grid;
+  grid-template-columns: 28px 38px 1fr auto;
+  gap: 8px; align-items: start;
+  padding: 10px 10px;
+  border-radius: 7px;
+  background: var(--slate50);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background .1s, border-color .1s;
+}
+.sess:active { background: var(--slate100); }
+.sess.checked {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+.sess.rest {
+  opacity: .45; cursor: default; pointer-events: none;
+  background: transparent; border: none;
+}
+
+.sess-check {
+  width: 22px; height: 22px;
+  border: 2px solid var(--slate300);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .15s;
+  font-size: 13px; color: transparent;
+  margin-top: 1px;
+}
+.sess.checked .sess-check {
+  background: var(--green); border-color: var(--green);
+  color: white;
+}
+
+.sess-day {
+  font-size: 10px; font-weight: 700;
+  color: var(--slate400); text-transform: uppercase;
+  letter-spacing: 1px; padding-top: 3px;
+}
+
+.sess-name { font-size: 13px; font-weight: 600; color: var(--slate800); line-height: 1.3; }
+.sess-desc { font-size: 11px; color: var(--slate500); margin-top: 2px; line-height: 1.4; }
+.sess.checked .sess-name { text-decoration: line-through; color: var(--slate400); }
+
+.sess-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.sess-dur {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px; font-weight: 700; color: var(--slate700); line-height: 1;
+}
+.sess-zone {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: .5px;
+  padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+}
+.sess-watts {
+  font-size: 10px; font-weight: 600; color: var(--slate500);
+  white-space: nowrap;
+}
+
+@keyframes check-pop { 0%{transform:scale(1)} 40%{transform:scale(1.12)} 100%{transform:scale(1)} }
+.popping { animation: check-pop .22s ease; }
+
+/* ── INFO ACCORDIONS ─────────────────────────────────────── */
+.info-section { margin-top: 16px; }
+.info-head {
+  display: flex; align-items: center; gap: 10px;
+  background: white; padding: 14px 16px;
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  border: 1.5px solid var(--slate200);
+  transition: border-color .2s;
+}
+.info-head.open {
+  border-color: var(--slate300);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: none; border-bottom: none;
+}
+.info-head:active { background: var(--slate50); }
+.info-icon { font-size: 18px; }
+.info-title { font-size: 14px; font-weight: 700; color: var(--slate800); flex: 1; }
+.info-arrow { color: var(--slate400); font-size: 12px; transition: transform .2s; }
+.info-head.open .info-arrow { transform: rotate(180deg); }
+
+.info-body {
+  display: none;
+  background: white;
+  border: 1.5px solid var(--slate200); border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 16px;
+}
+.info-body.open { display: block; }
+
+/* Nutrition */
+.nutri-phase { margin-bottom: 18px; }
+.nutri-phase:last-child { margin-bottom: 0; }
+.np-head {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--blue); margin-bottom: 8px;
+}
+.np-items { display: flex; flex-direction: column; gap: 5px; }
+.np-item {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 12px; line-height: 1.5; color: var(--slate700);
+  padding: 7px 10px; background: var(--slate50);
+  border-radius: 6px; border-left: 3px solid var(--blue);
+}
+.np-arrow { color: var(--blue); flex-shrink: 0; font-weight: 700; }
+
+/* Regen */
+.regen-items { display: flex; flex-direction: column; gap: 6px; }
+.ri {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 7px;
+  background: var(--slate50);
+  border-left: 3px solid var(--slate300);
+  font-size: 12px; line-height: 1.5; color: var(--slate700);
+}
+.ri-ico { font-size: 15px; flex-shrink: 0; }
+.ri strong { color: var(--slate800); }
+
+/* ── RESET BUTTON ────────────────────────────────────────── */
+.reset-wrap { margin-top: 20px; }
+.reset-btn {
+  width: 100%; padding: 12px;
+  background: white; border: 1.5px solid #fca5a5;
+  border-radius: 8px; color: var(--red);
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; cursor: pointer;
+  transition: background .15s;
+}
+.reset-btn:hover { background: var(--redXL); }
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.footer {
+  text-align: center; padding: 20px 16px;
+  font-size: 10px; color: var(--slate400); letter-spacing: 1px;
+  border-top: 1px solid var(--slate200); margin-top: 24px;
+}
+
+/* ── INSTALL BANNER ──────────────────────────────────────── */
+#install-bar {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: white;
+  border-top: 2px solid var(--slate200);
+  padding: 12px 16px calc(12px + var(--safe-bot));
+  flex-direction: row; align-items: center; gap: 10px;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+}
+#install-bar.show { display: flex; }
+.ib-text { flex: 1; }
+.ib-text strong { font-size: 13px; color: var(--slate800); display: block; }
+.ib-text span { font-size: 11px; color: var(--slate500); }
+.ib-install {
+  background: var(--navy); color: white; border: none;
+  padding: 8px 16px; border-radius: 7px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
+}
+.ib-close { background: none; border: none; color: var(--slate400); font-size: 18px; cursor: pointer; padding: 4px; }
+
+@media(min-width:600px){
+  .content { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="offline-bar">⚡ Offline · Alle Daten lokal gespeichert</div>
+
+<!-- ══════════════════ SETUP SCREEN ══════════════════════════ -->
+<div id="setup">
+  <svg class="setup-icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="200" height="200" rx="40" fill="rgba(255,255,255,0.15)"/>
+    <circle cx="130" cy="52" r="14" fill="#f5c5a3"/>
+    <path d="M118 48 Q116 34 130 32 Q144 34 142 48 Z" fill="#e74c3c"/>
+    <path d="M120 50 Q125 46 130 47 Q135 46 140 50" stroke="#222" stroke-width="3" fill="none"/>
+    <path d="M128 66 L108 110 L95 108 L118 62 Z" fill="#60a5fa"/>
+    <path d="M128 66 L148 100 L138 106 L118 62 Z" fill="#93c5fd"/>
+    <path d="M125 75 Q145 72 155 78" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M155 78 L162 82" stroke="#f5c5a3" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <line x1="162" y1="82" x2="148" y2="148" stroke="rgba(255,255,255,0.5)" stroke-width="3"/>
+    <line x1="148" y1="148" x2="140" y2="150" stroke="rgba(255,255,255,0.5)" stroke-width="3"/>
+    <path d="M118 78 Q100 80 88 88" stroke="#60a5fa" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <line x1="88" y1="88" x2="72" y2="152" stroke="rgba(255,255,255,0.5)" stroke-width="3"/>
+    <line x1="72" y1="152" x2="62" y2="154" stroke="rgba(255,255,255,0.5)" stroke-width="3"/>
+    <path d="M108 110 L98 145 L85 143 L95 108 Z" fill="rgba(255,255,255,0.3)"/>
+    <path d="M138 106 L135 143 L122 145 L125 106 Z" fill="rgba(255,255,255,0.3)"/>
+    <rect x="80" y="140" width="22" height="12" rx="4" fill="rgba(255,255,255,0.4)"/>
+    <rect x="118" y="140" width="22" height="12" rx="4" fill="rgba(255,255,255,0.4)"/>
+    <path d="M58 153 Q100 148 150 153 Q167 154 174 160" stroke="#e74c3c" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <path d="M48 158 Q88 153 136 158 Q154 160 162 166" stroke="#f87171" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <line x1="28" y1="82" x2="54" y2="82" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <line x1="20" y1="96" x2="48" y2="96" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <line x1="26" y1="110" x2="50" y2="110" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.35"/>
+  </svg>
+
+  <div class="setup-title">ALPINE<br><em>POWER</em><br>TRACKER</div>
+  <div class="setup-sub">16-Wochen Vorsaison · SL &amp; GS</div>
+
+  <div class="setup-box">
+    <h2>⚙️ Dein Athlet-Profil</h2>
+
+    <div class="field">
+      <label for="i-ftp">Aktuelle FTP</label>
+      <div class="field-row">
+        <input id="i-ftp" type="number" min="80" max="700" value="270" inputmode="numeric">
+        <span class="unit">W</span>
+      </div>
+      <div class="hint">Nicht sicher? 20-Min Vollgas-Test × 0,95 = deine FTP.</div>
+    </div>
+
+    <div class="field">
+      <label for="i-kg">Körpergewicht</label>
+      <div class="field-row">
+        <input id="i-kg" type="number" min="40" max="200" value="75" inputmode="numeric">
+        <span class="unit">kg</span>
+      </div>
+    </div>
+
+    <div class="wkg-card">
+      <div class="wkg-num" id="wkg-num">3,6</div>
+      <div class="wkg-right">
+        <div class="wkg-label">W/kg · Leistungsgewicht</div>
+        <div class="wkg-rating" id="wkg-rating">Gut – kompetitives Niveau</div>
+      </div>
+    </div>
+
+    <div class="zone-list" id="zone-list"></div>
+
+    <button class="start-btn" id="start-btn">Training starten →</button>
+  </div>
+</div>
+
+<!-- ══════════════════ APP ════════════════════════════════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-top">
+        <svg class="header-icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="200" rx="40" fill="rgba(255,255,255,0.12)"/>
+          <circle cx="130" cy="52" r="14" fill="#f5c5a3"/>
+          <path d="M118 48 Q116 34 130 32 Q144 34 142 48 Z" fill="#e74c3c"/>
+          <path d="M128 66 L108 110 L95 108 L118 62 Z" fill="#60a5fa"/>
+          <path d="M128 66 L148 100 L138 106 L118 62 Z" fill="#93c5fd"/>
+          <path d="M125 75 Q145 72 155 78" stroke="#60a5fa" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <path d="M155 78 L162 82" stroke="#f5c5a3" stroke-width="6" stroke-linecap="round" fill="none"/>
+          <line x1="162" y1="82" x2="148" y2="148" stroke="rgba(255,255,255,0.4)" stroke-width="3"/>
+          <path d="M118 78 Q100 80 88 88" stroke="#60a5fa" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <line x1="88" y1="88" x2="72" y2="152" stroke="rgba(255,255,255,0.4)" stroke-width="3"/>
+          <path d="M108 110 L98 145 L85 143 L95 108 Z" fill="rgba(255,255,255,0.25)"/>
+          <path d="M138 106 L135 143 L122 145 L125 106 Z" fill="rgba(255,255,255,0.25)"/>
+          <rect x="80" y="140" width="22" height="12" rx="4" fill="rgba(255,255,255,0.35)"/>
+          <rect x="118" y="140" width="22" height="12" rx="4" fill="rgba(255,255,255,0.35)"/>
+          <path d="M58 153 Q100 148 150 153 Q167 154 174 160" stroke="#e74c3c" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <line x1="28" y1="82" x2="54" y2="82" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+          <line x1="20" y1="96" x2="48" y2="96" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+        <div class="header-text">
+          <div class="header-eyebrow" id="h-eyebrow">Vorsaison · Rad · Alpin</div>
+          <div class="header-title">ALPINE <em>POWER</em> TRACKER</div>
+        </div>
+        <button class="edit-btn" onclick="openSetup()">✎ Profil</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-chip"><div class="stat-val" id="h-ftp">—</div><div class="stat-label">FTP</div></div>
+        <div class="stat-chip"><div class="stat-val" id="h-wkg">—</div><div class="stat-label">W/kg</div></div>
+        <div class="stat-chip"><div class="stat-val" id="h-kg">—</div><div class="stat-label">Gewicht</div></div>
+        <div class="stat-chip"><div class="stat-val" id="h-done">0</div><div class="stat-label">Einheiten ✓</div></div>
+      </div>
+
+      <div class="prog-wrap">
+        <div class="prog-header">
+          <span class="prog-label">Gesamtfortschritt</span>
+          <span class="prog-pct" id="h-pct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="h-bar" style="width:0%"></div></div>
+      </div>
+
+      <div class="phase-bars">
+        <div class="pb-item"><div class="pb-label">Phase 1</div><div class="pb-track"><div class="pb-fill" id="pb0" style="width:0%;background:var(--p1)"></div></div></div>
+        <div class="pb-item"><div class="pb-label">Phase 2</div><div class="pb-track"><div class="pb-fill" id="pb1" style="width:0%;background:var(--p2)"></div></div></div>
+        <div class="pb-item"><div class="pb-label">Phase 3</div><div class="pb-track"><div class="pb-fill" id="pb2" style="width:0%;background:var(--p3)"></div></div></div>
+        <div class="pb-item"><div class="pb-label">Phase 4</div><div class="pb-track"><div class="pb-fill" id="pb3" style="width:0%;background:var(--p4)"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONES STRIP -->
+  <div class="zones-strip" id="zones-strip">
+    <span class="zs-label">Zonen</span>
+  </div>
+
+  <!-- PHASE TABS -->
+  <div class="phase-nav" id="phase-nav">
+    <div class="pn-tab on" onclick="showPhase(0)">
+      <div class="pn-num">P01</div>
+      <div class="pn-name" style="color:var(--p1)">Grundlage</div>
+      <div class="pn-prog"><div class="pn-fill" id="pf0" style="background:var(--p1)"></div></div>
+    </div>
+    <div class="pn-tab" onclick="showPhase(1)">
+      <div class="pn-num">P02</div>
+      <div class="pn-name" style="color:var(--p2)">Aufbau</div>
+      <div class="pn-prog"><div class="pn-fill" id="pf1" style="background:var(--p2)"></div></div>
+    </div>
+    <div class="pn-tab" onclick="showPhase(2)">
+      <div class="pn-num">P03</div>
+      <div class="pn-name" style="color:var(--p3)">Spezifik</div>
+      <div class="pn-prog"><div class="pn-fill" id="pf2" style="background:var(--p3)"></div></div>
+    </div>
+    <div class="pn-tab" onclick="showPhase(3)">
+      <div class="pn-num">P04</div>
+      <div class="pn-name" style="color:var(--p4)">Peak</div>
+      <div class="pn-prog"><div class="pn-fill" id="pf3" style="background:var(--p4)"></div></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <div class="phase-panel on" id="pp0">
+      <div class="phase-intro" style="border-color:var(--p1)">
+        <div class="pi-icon">🏔️</div>
+        <div>
+          <div class="pi-title" style="color:var(--p1)">Grundlagen-Ausdauer · Woche 1–4</div>
+          <div class="pi-text">Aerobe Basis, Fettverbrennung, Kapillarisierung. 70% des Volumens in Z1/Z2. Trittfrequenz 88–95 rpm halten. Das Fundament für alle Intensitätsblöcke.</div>
+        </div>
+      </div>
+      <div class="week-list" id="wl0"></div>
+    </div>
+
+    <div class="phase-panel" id="pp1">
+      <div class="phase-intro" style="border-color:var(--p2)">
+        <div class="pi-icon">⚡</div>
+        <div>
+          <div class="pi-title" style="color:var(--p2)">Aufbau &amp; Schwelle · Woche 5–8</div>
+          <div class="pi-text">FTP-Steigerung, Laktattoleranz. Schwellen- und VO₂max-Intervalle stehen im Vordergrund. Ziel: +5–8% FTP bis Woche 8. <strong>FTP-Test in Woche 8 – danach Profil aktualisieren!</strong></div>
+        </div>
+      </div>
+      <div class="week-list" id="wl1"></div>
+    </div>
+
+    <div class="phase-panel" id="pp2">
+      <div class="phase-intro" style="border-color:var(--p3)">
+        <div class="pi-icon">🎿</div>
+        <div>
+          <div class="pi-title" style="color:var(--p3)">Spezifische Alpine Leistung · Woche 9–13</div>
+          <div class="pi-text">SL/GS-Simulation. 30/30 und 60/60-Intervalle spiegeln den metabolischen Stress eines Slalom- (45–55 Sek) und GS-Laufs (60–90 Sek) exakt wider. Explosivkraft und Laktatclearance.</div>
+        </div>
+      </div>
+      <div class="week-list" id="wl2"></div>
+    </div>
+
+    <div class="phase-panel" id="pp3">
+      <div class="phase-intro" style="border-color:var(--p4)">
+        <div class="pi-icon">🏆</div>
+        <div>
+          <div class="pi-title" style="color:var(--p4)">Peak &amp; Taper · Woche 14–16</div>
+          <div class="pi-text">Volumen –40%, Intensität bleibt hoch. Taper ≠ Urlaub! Nervensystem auffrischen, Explosivkraft schärfen. Schlaf ist die wichtigste Maßnahme dieser Phase.</div>
+        </div>
+      </div>
+      <div class="week-list" id="wl3"></div>
+    </div>
+
+    <!-- NUTRITION -->
+    <div class="info-section">
+      <div class="info-head" id="nh-nutri" onclick="toggleInfo('nutri')">
+        <span class="info-icon">🥗</span>
+        <span class="info-title">Ernährung</span>
+        <span class="info-arrow">▾</span>
+      </div>
+      <div class="info-body" id="nb-nutri">
+        <div class="nutri-phase">
+          <div class="np-head">Phase 1 · Grundlage</div>
+          <div class="np-items">
+            <div class="np-item"><span class="np-arrow">›</span>Lange Fahrten nüchtern starten (erste 45–60 Min) → erhöhte Fettoxidation</div>
+            <div class="np-item"><span class="np-arrow">›</span>5–6g Kohlenhydrate/kg KG täglich · Protein 1,8–2,0g/kg</div>
+            <div class="np-item"><span class="np-arrow">›</span>Nach Z2-Einheiten: Mahlzeit innerhalb 30 Min (3:1 KH:Protein)</div>
+          </div>
+        </div>
+        <div class="nutri-phase">
+          <div class="np-head">Phase 2 · Aufbau</div>
+          <div class="np-items">
+            <div class="np-item"><span class="np-arrow">›</span>Intervall-Tage: 60–90 Min vorher 50–60g Kohlenhydrate essen</div>
+            <div class="np-item"><span class="np-arrow">›</span>Während Schwellen-Einheiten: 30–40g KH/Std (Gel oder Riegel)</div>
+            <div class="np-item"><span class="np-arrow">›</span>Kreatin 3–5g/Tag unterstützt ATP-Regeneration für explosive Sprints</div>
+          </div>
+        </div>
+        <div class="nutri-phase">
+          <div class="np-head">Phase 3 · Spezifik</div>
+          <div class="np-items">
+            <div class="np-item"><span class="np-arrow">›</span>Rennsimulations-Tage: vollständige KH-Versorgung, kein Nüchterntraining</div>
+            <div class="np-item"><span class="np-arrow">›</span>Koffein 3–6mg/kg, 60 Min vor Z5/Z6-Einheiten einnehmen</div>
+            <div class="np-item"><span class="np-arrow">›</span>Recovery-Shake direkt nach Intervallen: 25g Whey + 50g Maltodextrin</div>
+          </div>
+        </div>
+        <div class="nutri-phase">
+          <div class="np-head">Phase 4 · Taper &amp; Rennen</div>
+          <div class="np-items">
+            <div class="np-item"><span class="np-arrow">›</span>2–3 Tage vor Rennen: Kohlenhydrat-Loading 8–10g/kg</div>
+            <div class="np-item"><span class="np-arrow">›</span>Renntag-Frühstück: 3–4 Std vorher, 2g KH/kg, wenig Ballaststoffe</div>
+            <div class="np-item"><span class="np-arrow">›</span>Zwischen SL-Läufen: 30g schnelle KH + Koffein-Gel · Kein Alkohol letzte 7 Tage</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGENERATION -->
+    <div class="info-section">
+      <div class="info-head" id="nh-regen" onclick="toggleInfo('regen')">
+        <span class="info-icon">🔄</span>
+        <span class="info-title">Regeneration</span>
+        <span class="info-arrow">▾</span>
+      </div>
+      <div class="info-body" id="nb-regen">
+        <div class="regen-items">
+          <div class="ri" style="border-color:var(--blue)"><div class="ri-ico">😴</div><div><strong>Schlaf ist Training:</strong> 8–9 Std/Nacht. Schlafmangel löscht Trainingsanpassungen vollständig aus.</div></div>
+          <div class="ri" style="border-color:var(--teal)"><div class="ri-ico">🛁</div><div><strong>Kaltwasser-Immersion:</strong> 10–15 Min bei 12–15°C nach Z4/Z5/Z6-Einheiten → Laktatelimination +40%.</div></div>
+          <div class="ri" style="border-color:var(--orange)"><div class="ri-ico">🧘</div><div><strong>HRV-Monitoring:</strong> Morgens messen. Fällt HRV 3 Tage in Folge → Einheit reduzieren oder streichen.</div></div>
+          <div class="ri" style="border-color:var(--purple)"><div class="ri-ico">💆</div><div><strong>Massage:</strong> 1×/Woche Sportmassage (Ruhetag). Foam Rolling täglich 10 Min – Quad, IT-Band, Waden.</div></div>
+          <div class="ri" style="border-color:var(--orange)"><div class="ri-ico">🔥</div><div><strong>Sauna:</strong> 2–3×/Woche nach Z2-Einheiten, 15–20 Min bei 80–90°C → Plasmavolumen +5–8%.</div></div>
+          <div class="ri" style="border-color:var(--green)"><div class="ri-ico">📏</div><div><strong>Belastungs-Regel 3:1:</strong> Immer 3 Aufbauwochen → 1 Regenerationswoche (Wo 4, 8, 12). Niemals überspringen.</div></div>
+          <div class="ri" style="border-color:var(--red)"><div class="ri-ico">⚠️</div><div><strong>Übertraining erkennen:</strong> Ruhepuls +7, Schlafprobleme, kein Antrieb → sofort Ruhetag einlegen.</div></div>
+          <div class="ri" style="border-color:var(--green)"><div class="ri-ico">🧴</div><div><strong>Mikronährstoffe:</strong> Magnesium 400mg/Tag (Krämpfe), Vitamin D3 2000 IE, Omega-3 2g/Tag.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reset-wrap">
+      <button class="reset-btn" onclick="resetAll()">↺ Alle Einheiten zurücksetzen</button>
+    </div>
+
+    <div class="footer" id="app-footer">ALPINE POWER TRACKER · SL &amp; GS VORSAISON</div>
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<div id="install-bar">
+  <div class="ib-text">
+    <strong>App installieren</strong>
+    <span>Offline nutzen &amp; zum Homescreen hinzufügen</span>
+  </div>
+  <button class="ib-install" id="ib-btn">Installieren</button>
+  <button class="ib-close" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── ZONE DEFINITIONS ──────────────────────────────────────
+const ZONES = [
+  {id:'z1', name:'Z1', label:'Regeneration', color:'var(--z1)', bg:'var(--z1bg)', lo:0,    hi:0.60},
+  {id:'z2', name:'Z2', label:'Grundlage',   color:'var(--z2)', bg:'var(--z2bg)', lo:0.60, hi:0.80},
+  {id:'z3', name:'Z3', label:'Sweetspot',   color:'var(--z3)', bg:'var(--z3bg)', lo:0.80, hi:0.90},
+  {id:'z4', name:'Z4', label:'Schwelle',    color:'var(--z4)', bg:'var(--z4bg)', lo:0.90, hi:1.05},
+  {id:'z5', name:'Z5', label:'VO₂max',      color:'var(--z5)', bg:'var(--z5bg)', lo:1.05, hi:1.20},
+  {id:'z6', name:'Z6', label:'Anaerob',     color:'var(--z6)', bg:'var(--z6bg)', lo:1.20, hi:99  },
+];
+
+// ── TRAINING DATA ──────────────────────────────────────────
+// lo / hi = fraction of FTP  (1.00 = 100% FTP)
+// single:true → show only lo  |  sfx → suffix after watts  |  special → override watts text
+const DATA = [
+ {id:0, color:'var(--p1)', weeks:[
+  {id:'w1', n:'WO 01', title:'Einstieg · Basisvolumen', vol:'~6h 40min', sessions:[
+   {day:'MO',name:'Regenerationsfahrt',desc:'Lockeres Einrollen, 90–100 rpm, flaches Terrain',dur:'60 min',z:'z1',lo:.50,hi:.60},
+   {day:'DI',name:'Ruhetag / Mobilisation',rest:true},
+   {day:'MI',name:'Grundlagenausdauer L1',desc:'Kontinuierliche Fahrt im unteren Z2, konstante Leistung halten',dur:'90 min',z:'z2',lo:.62,hi:.70},
+   {day:'DO',name:'Aktivierungsfahrt + Kraftsprints',desc:'50 min Z2, dann 5× 8 Sek Maximalsprints mit voller Recovery',dur:'75 min',z:'z2',lo:.65,hi:.70,sfx:'/ max'},
+   {day:'FR',name:'Ruhetag / Stretching',rest:true},
+   {day:'SA',name:'Lange Grundlagenfahrt',desc:'Hügelig, durchgehend Z2, letzte 20 min progressiv steigern',dur:'150 min',z:'z2',lo:.63,hi:.78},
+   {day:'SO',name:'Aktive Regeneration',desc:'Sehr lockere Fahrt, Beine ausspülen',dur:'45 min',z:'z1',lo:.48,hi:.55},
+  ]},
+  {id:'w2', n:'WO 02', title:'Volumen + erste Sweetspots', vol:'~7h 45min', sessions:[
+   {day:'MO',name:'Regenerationsfahrt',desc:'Z1, hohe Kadenz, kein Druck auf Pedalen',dur:'60 min',z:'z1',lo:.50,hi:.60},
+   {day:'DI',name:'Sweetspot I',desc:'10 min einrollen · 3× 15 min @ 88–93% FTP · 5 min Pause · 10 min austrollen',dur:'85 min',z:'z3',lo:.88,hi:.93},
+   {day:'MI',name:'Ruhetag / Mobilisation & Foam Rolling',rest:true},
+   {day:'DO',name:'Grundlagenausdauer L2',desc:'Kontinuierliche Fahrt Z2, 3 kurze Antritte à 20 Sek eingebettet',dur:'100 min',z:'z2',lo:.64,hi:.75},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Ausdauerfahrt',desc:'Welliges Profil, Z2 Basis, letzte Stunde mit 3× 10 min Z2/Z3',dur:'180 min',z:'z2',lo:.64,hi:.81},
+   {day:'SO',name:'Aktive Regeneration',desc:'Lockere Fahrt nach langem Samstag',dur:'40 min',z:'z1',lo:.48,hi:.55},
+  ]},
+  {id:'w3', n:'WO 03', title:'Hohe Belastung · Schwelleneinstieg', vol:'~8h 30min', sessions:[
+   {day:'MO',name:'Regenerationsfahrt',desc:'Z1, nach hartem Block',dur:'60 min',z:'z1',lo:.50,hi:.60},
+   {day:'DI',name:'Sweetspot II',desc:'10 min einrollen · 2× 20 min @ 90–93% FTP · 8 min Pause · 10 min austrollen',dur:'90 min',z:'z3',lo:.90,hi:.93},
+   {day:'MI',name:'Ruhetag / Mobility',rest:true},
+   {day:'DO',name:'Schwellen-Einstieg',desc:'10 min warm-up · 3× 10 min @ FTP · 5 min Pause · 10 min cool-down',dur:'85 min',z:'z4',lo:.99,hi:1.02},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt mit Sweetspot-Block',desc:'2h Z2 · 40 min @ 88% FTP · 30 min Z2',dur:'200 min',z:'z2',lo:.67,hi:.88},
+   {day:'SO',name:'Lockere Regeneration',desc:'Z1, flach',dur:'45 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w4', n:'WO 04', title:'⟳ Regenerationswoche', vol:'~4h 30min', reco:true, sessions:[
+   {day:'MO',name:'Ruhetag',rest:true},
+   {day:'DI',name:'Lockere Fahrt + 4× 8 Sek Sprints',desc:'Neuromuskuläre Aktivierung erhalten, kein Druck',dur:'60 min',z:'z1',lo:.50,hi:.61},
+   {day:'MI',name:'Ruhetag / Sauna / Massage',rest:true},
+   {day:'DO',name:'Z2 Fahrt leicht',desc:'Unteres Z2, flach, kein Stress',dur:'75 min',z:'z2',lo:.62,hi:.69},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Moderate Ausfahrt',desc:'Hügelig Z2, Qualität der Beine testen',dur:'105 min',z:'z2',lo:.63,hi:.75},
+   {day:'SO',name:'Ruhetag',rest:true},
+  ]},
+ ]},
+ {id:1, color:'var(--p2)', weeks:[
+  {id:'w5', n:'WO 05', title:'Schwellenaufbau I', vol:'~8h', sessions:[
+   {day:'MO',name:'Regeneration + Aktivierung',desc:'Z1 lockere Fahrt, 5× 8 Sek maximale Tritte',dur:'60 min',z:'z1',lo:.50,hi:.60},
+   {day:'DI',name:'Schwellen-Intervalle',desc:'10 min warm-up · 4× 10 min @ 100–105% FTP · 5 min Pause',dur:'90 min',z:'z4',lo:1.00,hi:1.05},
+   {day:'MI',name:'Ruhetag / Kraft',rest:true},
+   {day:'DO',name:'Sweetspot Volumen',desc:'10 min einrollen · 2× 30 min @ 88–92% FTP · 8 min Pause',dur:'100 min',z:'z3',lo:.88,hi:.92},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt mit Tempo-Einlage',desc:'90 min Z2 · 3× 15 min Z3 · 5 min Pause · 30 min Z2 cool-down',dur:'180 min',z:'z2',lo:.67,hi:.87},
+   {day:'SO',name:'Aktive Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w6', n:'WO 06', title:'VO₂max Einführung + Schwelle', vol:'~8h 30min', sessions:[
+   {day:'MO',name:'Regeneration',dur:'55 min',z:'z1',lo:.50,hi:.59},
+   {day:'DI',name:'VO₂max Intervalle (Einstieg)',desc:'15 min warm-up · 5× 3 min @ 110–115% FTP · 3 min aktive Pause',dur:'70 min',z:'z5',lo:1.10,hi:1.15},
+   {day:'MI',name:'Ruhetag / Kraft',rest:true},
+   {day:'DO',name:'Schwellen-Dauerlauf',desc:'15 min einrollen · 2× 20 min @ FTP · 7 min Pause · 10 min austrollen',dur:'90 min',z:'z4',lo:.99,hi:1.01},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt',desc:'Z2 Basis, letztes Drittel 3× 12 min Sweetspot',dur:'200 min',z:'z2',lo:.67,hi:.92},
+   {day:'SO',name:'Regeneration',dur:'55 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w7', n:'WO 07', title:'Hochbelastung · Doppelqualität', vol:'~9h', sessions:[
+   {day:'MO',name:'Aktive Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.59},
+   {day:'DI',name:'Schwellen-Block lang',desc:'15 min einrollen · 5× 10 min @ 100% FTP · 4 min Pause',dur:'110 min',z:'z4',lo:1.00,hi:1.00,single:true},
+   {day:'MI',name:'Z2 + Kraftausdauer-Treten',desc:'3× 10 min @ 55–60 rpm im Z2 – alpine Druckphase durch den Bogen simulieren!',dur:'90 min',z:'z2',lo:.67,hi:.73},
+   {day:'DO',name:'VO₂max Intervalle',desc:'15 min warm-up · 6× 3 min @ 112% FTP · 3 min aktive Pause',dur:'75 min',z:'z5',lo:1.10,hi:1.14},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt (Aufbau-Maximum)',desc:'Z2 Grundlage · Mittelteil 4× 15 min Z3 · entspanntes Auslaufen',dur:'210 min',z:'z2',lo:.66,hi:.87},
+   {day:'SO',name:'Lockere Regeneration',dur:'45 min',z:'z1',lo:.48,hi:.55},
+  ]},
+  {id:'w8', n:'WO 08', title:'⟳ Regen + FTP-Test', vol:'~5h', reco:true, sessions:[
+   {day:'MO',name:'Ruhetag',rest:true},
+   {day:'DI',name:'Lockere Fahrt',desc:'Z1, kein Druck',dur:'60 min',z:'z1',lo:.50,hi:.59},
+   {day:'MI',name:'Ruhetag / Massage',rest:true},
+   {day:'DO',name:'🧪 FTP-Test (20-min-Protokoll)',desc:'15 min Warm-up mit 2× 1 min Z5 · dann 20 min All-out · Neue Zonen berechnen!',dur:'60 min',z:'z4',special:'All-out'},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Moderate Ausfahrt',desc:'Z2, hügelig, entspannt',dur:'100 min',z:'z2',lo:.63,hi:.75},
+   {day:'SO',name:'Ruhetag',rest:true},
+  ]},
+ ]},
+ {id:2, color:'var(--p3)', weeks:[
+  {id:'w9', n:'WO 09', title:'Anaerober Einstieg · SL-Simulation', vol:'~8h', sessions:[
+   {day:'MO',name:'Aktive Regeneration',dur:'55 min',z:'z1',lo:.50,hi:.59},
+   {day:'DI',name:'Slalom-Simulation I: 30/30',desc:'15 min warm-up · 3 Serien × 10 Wdh. (30 Sek @ 130% FTP / 30 Sek Z1) · 5 min Pause',dur:'75 min',z:'z6',lo:1.25,hi:1.30,sfx:'/ Z1'},
+   {day:'MI',name:'Ruhetag / Kraft Bein',rest:true},
+   {day:'DO',name:'Schwelle + VO₂max Kombi',desc:'2× 15 min @ 100% FTP → 5 min Pause → 4× 2 min @ 115% FTP → cool-down',dur:'85 min',z:'z4',lo:1.00,hi:1.15},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt mit spez. Einlage',desc:'90 min Z2 · dann 5× 5 min @ 105–108% FTP · 3 min Pause · 30 min Z2',dur:'185 min',z:'z2',lo:.67,hi:1.08},
+   {day:'SO',name:'Aktive Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w10', n:'WO 10', title:'GS-Simulation · 60-Sek-Intervalle', vol:'~8h 30min', sessions:[
+   {day:'MO',name:'Regeneration',dur:'55 min',z:'z1',lo:.50,hi:.59},
+   {day:'DI',name:'GS-Simulation: 60/60',desc:'15 min warm-up · 3 Serien × 8 Wdh. (60 Sek @ 120% FTP / 60 Sek Z1) · 6 min Pause',dur:'85 min',z:'z5',lo:1.18,hi:1.22,sfx:'/ Z1'},
+   {day:'MI',name:'Z2 + Kraftausdauer-Treten',desc:'Z2, 4× 8 min @ 60 rpm eingebettet – GS-Druckphase durch den Bogen!',dur:'90 min',z:'z2',lo:.69,hi:.75},
+   {day:'DO',name:'Mikroburst-Protokoll',desc:'15 min warm-up · 5 Serien × 12 Wdh. (15 Sek Vollgas / 15 Sek locker) · 5 min Pause',dur:'75 min',z:'z6',lo:1.35,hi:1.50},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt mit VO₂max Blöcken',desc:'80 min Z2 · 5× 4 min @ 112% FTP · 4 min Pause · 30 min Z2',dur:'190 min',z:'z2',lo:.67,hi:1.12},
+   {day:'SO',name:'Lockere Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w11', n:'WO 11', title:'Hochintensivblock · Kombination', vol:'~9h', sessions:[
+   {day:'MO',name:'Aktive Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+   {day:'DI',name:'Pyramiden-Intervalle',desc:'15 min warm-up → 1-2-3-4-3-2-1 min @ Z5, gleiche Pausen – variierende SL-Sektion',dur:'80 min',z:'z5',lo:1.10,hi:1.24},
+   {day:'MI',name:'Sweetspot-Volumen',desc:'2× 25 min @ 90% FTP, 8 min Pause',dur:'90 min',z:'z3',lo:.90,hi:.90,single:true},
+   {day:'DO',name:'Over-Under Schwellen',desc:'3× 12 min: 2 min @ 105% FTP + 1 min @ 80% FTP (4 Zyklen) · 5 min Pause',dur:'95 min',z:'z4',lo:.80,hi:1.05},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt + Race-Pace Finish',desc:'120 min Z2 · dann 2× 20 min @ 100–105% FTP · 10 min cool-down',dur:'200 min',z:'z2',lo:.66,hi:1.05},
+   {day:'SO',name:'Lockere Ausfahrt',dur:'55 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w12', n:'WO 12', title:'⟳ Regenerationswoche', vol:'~4h 30min', reco:true, sessions:[
+   {day:'MO',name:'Ruhetag',rest:true},
+   {day:'DI',name:'Lockere Fahrt + 5 Sprints',desc:'Neuromuskuläre Aktivierung erhalten',dur:'60 min',z:'z1',lo:.50,hi:.61},
+   {day:'MI',name:'Ruhetag / Massage / Sauna',rest:true},
+   {day:'DO',name:'Z2 + 2× 10 min Sweetspot',dur:'75 min',z:'z2',lo:.69,hi:.91},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Moderate Fahrt',desc:'Z2, Qualität der Beine einschätzen',dur:'100 min',z:'z2',lo:.64,hi:.75},
+   {day:'SO',name:'Ruhetag',rest:true},
+  ]},
+  {id:'w13', n:'WO 13', title:'Race-Specific Vollbelastung', vol:'~8h', sessions:[
+   {day:'MO',name:'Aktive Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+   {day:'DI',name:'Rennsimulation SL/GS (2-Lauf)',desc:'20 min warm-up · 3× (90 Sek @ 125–130% FTP · 4 min Z1) · 3 min Pause · 3× = 2 Wettkampfläufe',dur:'80 min',z:'z6',lo:1.25,hi:1.30},
+   {day:'MI',name:'Ruhetag / Kraft',rest:true},
+   {day:'DO',name:'Schwellen-Intervalle lang',desc:'3× 15 min @ FTP · 6 min Pause · Fokus auf saubere Pedalrunde',dur:'95 min',z:'z4',lo:1.00,hi:1.04},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Lange Fahrt mit Vollgas-Einlagen',desc:'100 min Z2 · 4× 5 min @ 110% FTP · 4 min Pause · 30 min Z2',dur:'185 min',z:'z2',lo:.67,hi:1.10},
+   {day:'SO',name:'Lockere Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+  ]},
+ ]},
+ {id:3, color:'var(--p4)', weeks:[
+  {id:'w14', n:'WO 14', title:'Peak I · Qualität vor Quantität', vol:'~6h', sessions:[
+   {day:'MO',name:'Aktive Regeneration',dur:'50 min',z:'z1',lo:.50,hi:.57},
+   {day:'DI',name:'SL-Peak Intervalle',desc:'20 min warm-up · 2 Serien × 6 Wdh. (45 Sek @ 130%+ FTP / 3 min Z1) · 8 min Pause',dur:'70 min',z:'z6',lo:1.30,hi:1.40},
+   {day:'MI',name:'Ruhetag / Mobilisation',rest:true},
+   {day:'DO',name:'Schwellen-Erhalt',desc:'15 min einrollen · 3× 10 min @ 100% FTP · 5 min Pause – nur Aktivierung',dur:'75 min',z:'z4',lo:1.00,hi:1.02},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Moderate Fahrt + Sprints',desc:'90 min Z2 · eingebettet 8× 10 Sek Maximalsprints · locker auslaufen',dur:'120 min',z:'z2',lo:.67,hi:.70,sfx:'/ max'},
+   {day:'SO',name:'Lockere Ausfahrt',dur:'45 min',z:'z1',lo:.50,hi:.57},
+  ]},
+  {id:'w15', n:'WO 15', title:'Taper I · Frische aufbauen', vol:'~4h 30min', sessions:[
+   {day:'MO',name:'Ruhetag',rest:true},
+   {day:'DI',name:'Kurze Hochintensität',desc:'15 min warm-up · 5× 1 min @ 120% FTP · 3 min Pause · 10 min cool-down',dur:'50 min',z:'z5',lo:1.18,hi:1.22},
+   {day:'MI',name:'Ruhetag',rest:true},
+   {day:'DO',name:'Z2 + 4× 30 Sek Aktivierungssprints',desc:'Lockere Fahrt, leichte Aktivierung – kein Stress',dur:'60 min',z:'z2',lo:.66,hi:.72},
+   {day:'FR',name:'Ruhetag',rest:true},
+   {day:'SA',name:'Moderate Ausfahrt',desc:'Locker Z2, Beine checken, frisch fühlen',dur:'90 min',z:'z2',lo:.66,hi:.75},
+   {day:'SO',name:'Ruhetag',rest:true},
+  ]},
+  {id:'w16', n:'WO 16', title:'★ Race Week · Saisonstart', vol:'~2h + Schnee', sessions:[
+   {day:'MO',name:'Ruhetag',rest:true},
+   {day:'DI',name:'Aktivierungseinheit',desc:'10 min warm-up · 3× 30 Sek @ 120% FTP · locker austrollen. Kopf frei!',dur:'35 min',z:'z5',lo:1.18,hi:1.22},
+   {day:'MI',name:'Ruhetag · Anreise / Material',rest:true},
+   {day:'DO',name:'Lockeres Einrollen Schnee',desc:'Erste Trainingsläufe ohne Druck – Körpergefühl auf Ski wiederentdecken',dur:'Schnee',z:'z2',special:'leicht'},
+   {day:'FR',name:'Training / Startvorbereitungen',rest:true},
+   {day:'SA',name:'🏁 RENNEN – TAG 1',desc:'Saisonstart!',dur:'Race Day',z:'z6',special:'Vollgas'},
+   {day:'SO',name:'🏁 RENNEN – TAG 2',dur:'Race Day',z:'z6',special:'Vollgas'},
+  ]},
+ ]},
+];
+
+// ── HELPERS ────────────────────────────────────────────────
+function rnd(x){ return Math.round(x); }
+function fw(s, ftp) {
+  if (s.special) return s.special;
+  if (s.lo === undefined) return '';
+  const lo = rnd(ftp * s.lo), hi = rnd(ftp * s.hi);
+  const sfx = s.sfx ? ' '+s.sfx : '';
+  if (s.single || lo === hi) return lo+'W'+sfx;
+  return lo+'–'+hi+'W'+sfx;
+}
+function zof(s) {
+  if (!s.z) return null;
+  return ZONES.find(z => z.id === s.z) || null;
+}
+
+// ── W/KG RATING ───────────────────────────────────────────
+function wkgRate(v){
+  if(v<2.0) return 'Einsteiger – viel Potenzial';
+  if(v<2.5) return 'Freizeitfahrer – Grundlage aufbauen';
+  if(v<3.0) return 'Solide Basis – Training zeigt Wirkung';
+  if(v<3.5) return 'Gut – starke Ausdauerbasis';
+  if(v<4.0) return 'Stark – kompetitives Niveau';
+  if(v<4.5) return 'Sehr stark – ambitionierter Athlet';
+  if(v<5.0) return 'Exzellent – Elite-Niveau';
+  return '🏆 Weltklasse-Leistung';
+}
+
+// ── STATE ──────────────────────────────────────────────────
+const SK = 'alpt-v3';
+let S = { ftp:270, weight:75, chk:{} };
+try { const d=JSON.parse(localStorage.getItem(SK)); if(d) S={...S,...d}; } catch(e){}
+function save(){ try{ localStorage.setItem(SK,JSON.stringify(S)); }catch(e){} }
+function ck(wid,i){ return wid+'_'+i; }
+
+// ── SETUP SCREEN ───────────────────────────────────────────
+const iFtp = document.getElementById('i-ftp');
+const iKg  = document.getElementById('i-kg');
+
+function refreshPreview(){
+  const ftp = parseInt(iFtp.value)||270;
+  const kg  = parseInt(iKg.value)||75;
+  const wkg = (ftp/kg).toFixed(1);
+  document.getElementById('wkg-num').textContent   = wkg;
+  document.getElementById('wkg-rating').textContent = wkgRate(parseFloat(wkg));
+
+  document.getElementById('zone-list').innerHTML = ZONES.map(z=>{
+    const loW = z.lo===0 ? 0 : rnd(ftp*z.lo);
+    const hiW = z.hi===99 ? null : rnd(ftp*z.hi);
+    const r = hiW ? loW+'–'+hiW+' W' : '> '+loW+' W';
+    return `<div class="zone-row">
+      <div class="zone-dot" style="background:${z.color}"></div>
+      <div class="zone-name" style="color:${z.color}">${z.name}</div>
+      <div class="zone-desc">${z.label}</div>
+      <div class="zone-watts" style="color:${z.color}">${r}</div>
+    </div>`;
+  }).join('');
+}
+
+iFtp.addEventListener('input', refreshPreview);
+iKg.addEventListener('input',  refreshPreview);
+iFtp.value = S.ftp;
+iKg.value  = S.weight;
+refreshPreview();
+
+document.getElementById('start-btn').onclick = function(){
+  const ftp = parseInt(iFtp.value), kg = parseInt(iKg.value);
+  if(!ftp||ftp<50||ftp>700){ iFtp.focus(); return; }
+  if(!kg||kg<30||kg>250){ iKg.focus(); return; }
+  S.ftp=ftp; S.weight=kg; save();
+  document.getElementById('setup').classList.add('gone');
+  document.getElementById('app').style.display='block';
+  initApp();
+};
+
+function openSetup(){
+  iFtp.value=S.ftp; iKg.value=S.weight; refreshPreview();
+  document.getElementById('setup').classList.remove('gone');
+  document.getElementById('app').style.display='none';
+}
+
+// ── APP INIT ───────────────────────────────────────────────
+function initApp(){
+  const wkg = (S.ftp/S.weight).toFixed(1);
+  document.getElementById('h-eyebrow').textContent = `Vorsaison · Rad · Alpin · ${S.ftp}W`;
+  document.getElementById('h-ftp').textContent  = S.ftp+'W';
+  document.getElementById('h-wkg').textContent  = wkg+' W/kg';
+  document.getElementById('h-kg').textContent   = S.weight+'kg';
+  document.title = 'Alpine Power Tracker · '+S.ftp+'W';
+  document.getElementById('app-footer').textContent =
+    `ALPINE POWER TRACKER · FTP ${S.ftp}W · ${wkg} W/KG · SL & GS`;
+
+  // Zones strip
+  const strip = document.getElementById('zones-strip');
+  strip.innerHTML = '<span class="zs-label">Zonen</span>';
+  ZONES.forEach(z=>{
+    const loW = z.lo===0?0:rnd(S.ftp*z.lo);
+    const hiW = z.hi===99?null:rnd(S.ftp*z.hi);
+    const r = hiW ? loW+'–'+hiW+'W' : '>'+loW+'W';
+    strip.innerHTML += `<div class="z-chip" style="background:${z.bg};border-color:${z.color}30">
+      <div class="z-chip-dot" style="background:${z.color}"></div>
+      <span style="color:${z.color}">${z.name}</span>
+      <span style="color:var(--slate500)">${r}</span>
+    </div>`;
+  });
+
+  renderAll();
+  updateProg();
+  // Open first week of each phase
+  ['w1','w5','w9','w14'].forEach(id=>{
+    const c=document.getElementById('wc-'+id);
+    if(c) c.classList.add('open');
+  });
+}
+
+// ── BUILD WEEK CARD ────────────────────────────────────────
+function buildWeek(wk){
+  const ftp = S.ftp;
+  const card = document.createElement('div');
+  card.className = 'week-card'+(wk.reco?' reco':'');
+  card.id = 'wc-'+wk.id;
+
+  const trainS = wk.sessions.filter(s=>!s.rest);
+  const doneS  = trainS.filter((_,ti)=>S.chk[ck(wk.id, wk.sessions.indexOf(trainS[ti]))]).length;
+  if(doneS===trainS.length&&trainS.length>0) card.classList.add('done');
+
+  const dotsHTML = wk.sessions.map((s,i)=>{
+    if(s.rest) return '<div class="wk-dot rest"></div>';
+    return `<div class="wk-dot${S.chk[ck(wk.id,i)]?' done':''}"></div>`;
+  }).join('');
+
+  const titleStyle = wk.reco ? 'style="color:var(--green)"' : '';
+  card.innerHTML = `
+    <div class="wk-head" onclick="toggleWk('${wk.id}')">
+      <div class="wk-badge">${wk.n}</div>
+      <div class="wk-title" ${titleStyle}>${wk.title}</div>
+      <div class="wk-right">
+        <span class="wk-vol">${wk.vol}</span>
+        <div class="wk-dots">${dotsHTML}</div>
+        <span class="wk-count">${doneS}/${trainS.length}</span>
+        <span class="wk-arrow">▾</span>
+      </div>
+    </div>
+    <div class="wk-body">
+      <div class="session-list" id="sl-${wk.id}"></div>
+    </div>`;
+
+  const list = card.querySelector('#sl-'+wk.id);
+  wk.sessions.forEach((s,idx)=>{
+    const row = document.createElement('div');
+    const key = ck(wk.id,idx);
+    const checked = !!S.chk[key];
+    row.className = 'sess'+(s.rest?' rest':'')+(checked?' checked':'');
+    row.dataset.key = key;
+
+    const zd = zof(s);
+    const c  = zd ? zd.color : 'var(--slate400)';
+    const bg = zd ? zd.bg : 'var(--slate50)';
+    const wt = fw(s, ftp);
+    const zn = s.special==='leicht'?'leicht':s.special==='Vollgas'?'MAX':(zd?zd.name:'');
+
+    row.innerHTML = `
+      <div class="sess-check">${checked?'✓':''}</div>
+      <div class="sess-day">${s.day}</div>
+      <div>
+        <div class="sess-name">${s.name}</div>
+        ${s.desc?`<div class="sess-desc">${s.desc}</div>`:''}
+      </div>
+      <div class="sess-meta">
+        ${s.dur?`<div class="sess-dur">${s.dur}</div>`:''}
+        ${zn?`<div class="sess-zone" style="background:${bg};color:${c}">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c};flex-shrink:0"></span>
+          ${zn}</div>`:''}
+        ${wt?`<div class="sess-watts">${wt}</div>`:''}
+      </div>`;
+
+    if(!s.rest){
+      row.addEventListener('click', ()=>toggleSess(key,wk.id));
+    }
+    list.appendChild(row);
+  });
+  return card;
+}
+
+function renderAll(){
+  DATA.forEach((ph,pi)=>{
+    const wrap = document.getElementById('wl'+pi);
+    wrap.innerHTML='';
+    ph.weeks.forEach(w=>wrap.appendChild(buildWeek(w)));
+  });
+}
+
+// ── INTERACTIONS ───────────────────────────────────────────
+function toggleWk(id){
+  document.getElementById('wc-'+id).classList.toggle('open');
+}
+
+function toggleSess(key,wid){
+  S.chk[key] = !S.chk[key]; save();
+  const row = document.querySelector(`[data-key="${key}"]`);
+  if(row){
+    const on = S.chk[key];
+    row.classList.toggle('checked',on);
+    const chkEl = row.querySelector('.sess-check');
+    chkEl.textContent = on?'✓':'';
+    chkEl.style.background  = on?'var(--green)':'';
+    chkEl.style.borderColor = on?'var(--green)':'';
+    chkEl.style.color       = on?'white':'';
+    row.classList.add('popping');
+    setTimeout(()=>row.classList.remove('popping'),220);
+  }
+  refreshWkHead(wid);
+  updateProg();
+}
+
+function refreshWkHead(wid){
+  let wk=null;
+  DATA.forEach(p=>{const f=p.weeks.find(x=>x.id===wid);if(f)wk=f;});
+  if(!wk) return;
+  const card = document.getElementById('wc-'+wid);
+  const trainS = wk.sessions.filter(s=>!s.rest);
+  const doneS  = trainS.filter((_,ti)=>S.chk[ck(wk.id,wk.sessions.indexOf(trainS[ti]))]).length;
+  card.classList.toggle('done', doneS===trainS.length&&trainS.length>0);
+  const dotsEl = card.querySelector('.wk-dots');
+  if(dotsEl) dotsEl.innerHTML=wk.sessions.map((s,i)=>{
+    if(s.rest) return '<div class="wk-dot rest"></div>';
+    return `<div class="wk-dot${S.chk[ck(wk.id,i)]?' done':''}"></div>`;
+  }).join('');
+  const cntEl = card.querySelector('.wk-count');
+  if(cntEl) cntEl.textContent=`${doneS}/${trainS.length}`;
+}
+
+function updateProg(){
+  let tot=0,don=0;
+  const pt=[0,0,0,0],pd=[0,0,0,0];
+  DATA.forEach((ph,pi)=>{
+    ph.weeks.forEach(w=>{
+      w.sessions.forEach((s,i)=>{
+        if(!s.rest){
+          tot++;pt[pi]++;
+          if(S.chk[ck(w.id,i)]){don++;pd[pi]++;}
+        }
+      });
+    });
+  });
+  const pct = tot ? Math.round(don/tot*100) : 0;
+  document.getElementById('h-bar').style.width = pct+'%';
+  document.getElementById('h-pct').textContent = pct+'%';
+  document.getElementById('h-done').textContent = don;
+  DATA.forEach((_,i)=>{
+    const p = pt[i] ? Math.round(pd[i]/pt[i]*100) : 0;
+    document.getElementById('pf'+i).style.width = p+'%';
+    document.getElementById('pb'+i).style.width = p+'%';
+  });
+}
+
+let curPhase = 0;
+function showPhase(idx){
+  curPhase = idx;
+  document.querySelectorAll('.phase-panel').forEach((el,i)=>el.classList.toggle('on',i===idx));
+  document.querySelectorAll('.pn-tab').forEach((el,i)=>el.classList.toggle('on',i===idx));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// Active tab border
+document.querySelectorAll('.pn-tab').forEach((tab,i)=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.pn-tab').forEach((t,j)=>{
+      t.style.borderBottomColor = j===i ? DATA[i].color : 'transparent';
+    });
+  });
+});
+
+function toggleInfo(id){
+  document.getElementById('nh-'+id).classList.toggle('open');
+  document.getElementById('nb-'+id).classList.toggle('open');
+}
+
+function resetAll(){
+  if(!confirm('Wirklich alle Einheiten zurücksetzen?')) return;
+  S.chk={}; save(); renderAll(); updateProg();
+  ['w1','w5','w9','w14'].forEach(id=>{
+    const c=document.getElementById('wc-'+id);
+    if(c) c.classList.add('open');
+  });
+}
+
+// ── OFFLINE ────────────────────────────────────────────────
+function setOffline(v){
+  document.getElementById('offline-bar').classList.toggle('show',v);
+}
+window.addEventListener('online',  ()=>setOffline(false));
+window.addEventListener('offline', ()=>setOffline(true));
+if(!navigator.onLine) setOffline(true);
+
+// ── SERVICE WORKER ─────────────────────────────────────────
+if('serviceWorker' in navigator){
+  // Only register on real domains (not in embedded previews)
+  const host = window.location.hostname;
+  const isReal = host !== '' && host !== 'localhost' && !host.includes('claude.ai');
+  if(isReal){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+}
+
+// ── PWA INSTALL PROMPT ─────────────────────────────────────
+let _dP = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); _dP = e;
+  setTimeout(()=>{ if(_dP) document.getElementById('install-bar').classList.add('show'); }, 5000);
+});
+window.addEventListener('appinstalled', ()=>{
+  _dP=null; document.getElementById('install-bar').classList.remove('show');
+});
+document.getElementById('ib-btn').addEventListener('click', async()=>{
+  if(!_dP) return;
+  _dP.prompt();
+  await _dP.userChoice;
+  _dP=null; document.getElementById('install-bar').classList.remove('show');
+});
+function dismissInstall(){
+  document.getElementById('install-bar').classList.remove('show'); _dP=null;
+}
+
+// ── AUTO-START if profile already exists ───────────────────
+if(S.ftp && S.weight && localStorage.getItem(SK)){
+  document.getElementById('setup').classList.add('gone');
+  document.getElementById('app').style.display='block';
+  initApp();
+}
+</script>
+</body>
+</html>
